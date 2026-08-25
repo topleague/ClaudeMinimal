@@ -6,8 +6,8 @@ export const SITE = {
   name: 'Susanta',
   role: 'Notes on English usage, markets, and building on the web',
   email: 'you@example.com',
-  tagline: 'Posts pulled live from WordPress, rendered by Astro.',
-  description: 'A minimalist front end for WordPress content, served through Astro and Cloudflare Pages.',
+  tagline: 'I build fast websites for your business and handle all the tech for you.',
+  description: 'You get more customers and revenue. I manage the speed, SEO, and updates',
   status: 'Powered by WordPress + Astro',
   social: [
     // Add or remove as needed. Each shows up in the footer.
