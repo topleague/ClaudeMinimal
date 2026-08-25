@@ -1,0 +1,64 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Button from '@/components/Button.astro';
+import PostRow from '@/components/PostRow.astro';
+import SectionHeading from '@/components/SectionHeading.astro';
+import { SITE } from '@/site.config';
+import { getPosts } from '@/lib/wordpress.js';
+
+interface WPPost {
+  uri: string;
+  title: string;
+  excerpt?: string;
+  date: string;
+  categories?: { nodes: { name: string; uri: string }[] };
+}
+
+let posts: WPPost[] = [];
+try {
+  posts = await getPosts();
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error('Failed to load WordPress posts:', message);
+}
+
+const selected = posts.slice(0, 5);
+---
+
+<BaseLayout title={SITE.name}>
+  <section class="mx-auto max-w-3xl px-6 pt-16 pb-20 sm:pt-24">
+    <p class="text-ink-soft mb-6 inline-flex items-center gap-2 font-mono text-xs">
+      <span class="bg-signal h-1.5 w-1.5 rounded-full" aria-hidden="true"></span>
+      {SITE.status}
+    </p>
+
+    <h1 class="font-display text-ink max-w-2xl text-4xl leading-[1.1] font-medium sm:text-5xl">
+      {SITE.tagline}
+    </h1>
+
+    <p class="text-ink-soft mt-6 max-w-md">
+      {SITE.role}
+    </p>
+
+    <div class="mt-8 flex flex-wrap items-center gap-3">
+      <Button href="#posts" variant="solid">Read the latest →</Button>
+      <Button href="/about" variant="ghost">About</Button>
+    </div>
+  </section>
+
+  <section id="posts" class="mx-auto max-w-3xl px-6 pb-24">
+    <SectionHeading eyebrow="Latest posts" count={posts.length} />
+    <div>
+      {
+        selected.length > 0 ? (
+          selected.map((post) => <PostRow post={post} />)
+        ) : (
+          <p class="text-ink-soft text-sm">
+            No posts found yet — check that the WordPress URL in{' '}
+            <code>src/lib/wordpress.js</code> points at your site's /graphql endpoint.
+          </p>
+        )
+      }
+    </div>
+  </section>
+</BaseLayout>

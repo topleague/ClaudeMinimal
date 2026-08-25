@@ -1,0 +1,129 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import PostRow from '@/components/PostRow.astro';
+import { getAllContentUris, getNodeByURI } from '@/lib/wordpress.js';
+
+export async function getStaticPaths() {
+  const uris = await getAllContentUris();
+
+  return uris.map((uri) => ({
+    params: {
+      uri: uri.replace(/^\/|\/$/g, ''),
+    },
+    props: { uri },
+  }));
+}
+
+const { uri } = Astro.props;
+const node = await getNodeByURI(uri);
+
+if (!node) {
+  return Astro.redirect('/404');
+}
+
+const isPost = node.__typename === 'Post';
+const isPage = node.__typename === 'Page';
+const isCategory = node.__typename === 'Category';
+const isTag = node.__typename === 'Tag';
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+const plainExcerpt = (node.excerpt || '').replace(/<[^>]+>/g, '').trim();
+
+interface Term {
+  name: string;
+  uri: string;
+}
+
+interface WPPost {
+  uri: string;
+  title: string;
+  excerpt?: string;
+  date: string;
+  categories?: { nodes: Term[] };
+}
+---
+
+<BaseLayout title={node.title || node.name} description={plainExcerpt}>
+  <main class="mx-auto max-w-3xl px-6 pt-16 pb-24 sm:pt-24">
+    {
+      isPost && (
+        <article>
+          <p class="text-ink-soft font-mono text-xs tracking-wide uppercase">
+            {formatDate(node.date)}
+          </p>
+
+          <h1 class="font-display text-ink mt-3 text-3xl font-medium sm:text-4xl">{node.title}</h1>
+
+          {(node.categories?.nodes?.length > 0 || node.tags?.nodes?.length > 0) && (
+            <div class="mt-4 flex flex-wrap gap-2">
+              {node.categories?.nodes?.map((category: Term) => (
+                <a
+                  href={category.uri}
+                  class="border-line text-ink-soft hover:border-signal hover:text-signal rounded-full border px-3 py-1 font-mono text-xs transition-colors"
+                >
+                  {category.name}
+                </a>
+              ))}
+              {node.tags?.nodes?.map((tag: Term) => (
+                <a
+                  href={tag.uri}
+                  class="border-line text-ink-soft hover:border-signal hover:text-signal rounded-full border px-3 py-1 font-mono text-xs transition-colors"
+                >
+                  #{tag.name}
+                </a>
+              ))}
+            </div>
+          )}
+
+          {node.featuredImage?.node && (
+            <img
+              src={node.featuredImage.node.sourceUrl}
+              alt={node.featuredImage.node.altText || node.title}
+              class="border-line mt-8 w-full rounded-lg border"
+            />
+          )}
+
+          <div class="prose prose-sm sm:prose-base mt-10 max-w-2xl" set:html={node.content} />
+        </article>
+      )
+    }
+
+    {
+      isPage && (
+        <article>
+          <h1 class="font-display text-ink text-3xl font-medium sm:text-4xl">{node.title}</h1>
+          <div class="prose prose-sm sm:prose-base mt-8 max-w-2xl" set:html={node.content} />
+        </article>
+      )
+    }
+
+    {
+      (isCategory || isTag) && (
+        <section>
+          <p class="text-ink-soft font-mono text-xs tracking-[0.2em] uppercase">
+            {isCategory ? 'Category' : 'Tag'}
+          </p>
+          <h1 class="font-display text-ink mt-3 text-3xl font-medium sm:text-4xl">{node.name}</h1>
+          <p class="text-ink-soft mt-3 font-mono text-xs">
+            {node.posts?.nodes?.length ?? 0} {node.posts?.nodes?.length === 1 ? 'post' : 'posts'}
+          </p>
+
+          <div class="mt-10">
+            {node.posts?.nodes?.length > 0 ? (
+              node.posts.nodes.map((post: WPPost) => <PostRow post={post} />)
+            ) : (
+              <p class="text-ink-soft text-sm">No posts found.</p>
+            )}
+          </div>
+        </section>
+      )
+    }
+  </main>
+</BaseLayout>
